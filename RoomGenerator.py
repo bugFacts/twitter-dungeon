@@ -310,50 +310,6 @@ def RollDice(numDice,sizeDice):
 ##														  ##
 ############################################################
 ############################################################	
-sRanMob = PickRandomMob()
-sAniMob = PickAnimalMob()
-sSupMob = PickSuperMob()
-sHumMob = PickHumanoidMob()
-	
-sAttacks = SimplePicker(shAtak,0).strip()
-sStatus = SimplePicker(shAtak,1).strip()
-sClass = SimplePicker(shAtak,2).strip()
-sBodyPt = SimplePicker(shAtak,3).strip()
-sDefeat = SimplePicker(shAtak,4).strip()
-sDefeating = SimplePicker(shAtak,5).strip()
-sDefeated = SimplePicker(shAtak,6).strip()
-sAbilty = SimplePicker(shAtak,7).strip()
-	
-sUArriveAt = SimplePicker(shDung,0).strip()
-sDungeon = SimplePicker(shDung,1).strip()
-sItIs = SimplePicker(shDung,2).strip()
-sHeroItem = SimplePicker(shDung,3).strip()
-sItArrivesAt = SimplePicker(shDung,4).strip()
-sItAppears = SimplePicker(shDung,5).strip()
-	
-sMaterial = SimplePicker(shShop,0).strip()
-sShopItem = SimplePicker(shShop,1).strip()
-sColors = SimplePicker(shShop,2).strip()
-sEffect = SimplePicker(shShop,3).strip()
-sDoubts = SimplePicker(shShop,4).strip()
-	
-sTitle = SimplePicker(shKing,0)
-#gender tuple stuffs
-sKingDoes = SimplePicker(shKing,2)
-sHumDesc1 = SimplePicker(shKing,3)
-sHumDesc2 = SimplePicker(shKing,3)
-sHumDesc3 = SimplePicker(shKing,3)
-	
-sPropNoun1 = RandomProperNoun()
-sPropNoun2 = RandomProperNoun()
-sPropNoun3 = RandomProperNoun()
-	
-sFlavNoun = FlavorfulProperNoun()
-	
-arrNumOfAdjProb = [[0,.8],[1,.12],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
-sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
-	
-
 
 def Status01(debug=0):	### Attacks
 	#2 
