@@ -113,17 +113,30 @@ def CleanUpReplied(tweetid):
 	with open(TWEETSRESPONDEDTO, 'w') as fp:
 		fp.write('\n'.join(['%s' % (i) for i in alreadyReplied]))
 					
-def ReplyRoll():
+def DiceCode(numOfDice):
+
+	syb_list = [u'\u2680',u'\u2681',u'\u2682',u'\u2683',u'\u2684',u'\u2685']
+	strOut= ''
+	for each in range(numOfDice):
+		strOut = ''.join([strOut,random.choice(syb_list)])
+	
+	return strOut
+	
+def ReplyRoll(debug = 0):
 	x = random.randint(1,6)
 	#y = random.randint(1,20)
 	y = random.choice([4,6,8,10,12,20,100])
+
 	numname = ['zero','one','two','three','four','five','six']
 	
-	r = random.randint(x,x*y)
-	strUpdate = 'You roll %s %i-sided dice: %i. It will be weeks before we know what this means.' % (numname[x],y,r)
+	if y == 6 and debug == 0:
+		r = DiceCode(x)
+	else:
+		r = random.randint(x,x*y)
+	strUpdate = 'You roll %s %i-sided dice: %s. It will be weeks before we know what this means.' % (numname[x],y,r)
 	return strUpdate
 	
-def ReplyAttack():
+def ReplyAttack(debug = 0):
 	x = random.randint(1,6)
 	#y = random.randint(1,20)
 	y = random.choice([4,6,8,10,12,20,100])
@@ -131,9 +144,12 @@ def ReplyAttack():
 	
 	numname = ['zero','one','two','three','four','five','six']
 	
-	r = random.randint(x,x*y)
-	
-	strPart = 'You roll %s %i-sided dice: %i.' % (numname[x],y,r)
+	if y == 6 and debug == 0:
+		r = DiceCode(x)
+	else:
+		r = random.randint(x,x*y)
+		
+	strPart = 'You roll %s %i-sided dice: %s.' % (numname[x],y,r)
 	if r <= (x*y) / 3:
 		strOpt1 = 'You drop your weapon, if you had one!'
 	elif r >= (x*y) * 5/6:
@@ -146,13 +162,15 @@ def ReplyAttack():
 	
 def TryInteract(sTweet,debug=0):
 	if 'roll ' in sTweet:
-		strStatus = ReplyRoll()
+		strStatus = ReplyRoll(debug)
 	elif 'attack' in sTweet or 'kill' in sTweet:
-		strStatus = ReplyAttack()
+		strStatus = ReplyAttack(debug)
 	elif 'quaff' in sTweet:
 		strStatus = 'Successful Quaff!'
-	#elif 'search' in sTweet:
-	#	strStatus = 
+	elif 'where' in sTweet:
+		strStatus = RoomGenerator.StatusMaker(debug=debug,force=19)
+	elif 'what' in sTweet or 'who' in sTweet or "I " in sTweet:
+		strStatus = RoomGenerator.StatusMaker(debug=debug,force=20,strIn=sTweet)
 	else:
 		strStatus = RoomGenerator.StatusMaker(debug=debug)
 		
@@ -274,7 +292,7 @@ def PesterPost(numOfTimes,results=None,sleepMin=0,sleepMax=10,debug=0):
 	
 	for i in results:									#get score for each tweet
 		statusDict[i] = GetScore(i)						#and add to dictionary of tweets
-		
+
 	#convert tweet dictionary to list sorted by score
 	scoredStats = sorted(statusDict.iteritems(), key=lambda x:x[1], reverse=True)
 	
@@ -290,6 +308,8 @@ def PesterPost(numOfTimes,results=None,sleepMin=0,sleepMax=10,debug=0):
 		usrName = statusObj.user.screen_name
 		sTweet = statusObj.text.encode('utf8', errors='ignore').lower()
 		postTime = statusObj.created_at_in_seconds
+		
+
 		
 		score = each[1]
 
@@ -362,12 +382,18 @@ debug = 0
 TweetAtFriendMinWait = 10
 TweetAtFriendMaxWait = 20
 
-TweetAtMentionMinWait = 10
-TweetAtMentionMaxWait = 20
+TweetAtMentionMinWait = 2
+TweetAtMentionMaxWait = 10
 
 TweetPlainMinWait = 10
 TweetPlainMaxWait = 20
 
+try:	
+	RepliesToMe = api.GetMentions()
+	PesterPost(3,results=RepliesToMe,sleepMin=TweetAtMentionMinWait,sleepMax=TweetAtMentionMaxWait,debug = debug)
+except Exception:
+	pass
+	
 try:	
 	MyTimeline = api.GetHomeTimeline(count=90)
 	PesterPost(1,results=MyTimeline,sleepMin=TweetAtFriendMinWait,sleepMax=TweetAtFriendMaxWait,debug = debug)
@@ -376,12 +402,6 @@ except Exception:
 	
 try:
 	PostUpdateToTwitter(1,sleepMin=TweetPlainMinWait,sleepMax=TweetPlainMaxWait,debug = debug)
-except Exception:
-	pass
-
-try:	
-	RepliesToMe = api.GetMentions()
-	PesterPost(2,results=RepliesToMe,sleepMin=TweetAtMentionMinWait,sleepMax=TweetAtMentionMaxWait,debug = debug)
 except Exception:
 	pass
 

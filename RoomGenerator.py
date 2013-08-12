@@ -7,10 +7,13 @@ import sys
 import time
 from string import maketrans  
 import re
+from map_generator import *
 
 import unicodedata
 #loadup dictionary 
 wb = xlrd.open_workbook('mob2.xls')
+wb2 = xlrd.open_workbook(u'words.xls')
+wb3 = xlrd.open_workbook(u'word_maker.xls')
 
 shMobs = wb.sheet_by_name(u'mob list')
 shAdjs = wb.sheet_by_name(u'adjective')
@@ -24,6 +27,17 @@ shCOMP = wb.sheet_by_name(u'testComp')
 shBITS = wb.sheet_by_name(u'bits')
 shBOOK = wb.sheet_by_name(u'booky')
 shLOST = wb.sheet_by_name(u'lostEmpire')
+shDrink = wb.sheet_by_name(u'drink')
+
+shPlaces = wb2.sheet_by_name(u'NamedPlace')
+shLOSTEMP = wb2.sheet_by_name(u'lostEmpire')
+shNumber = wb2.sheet_by_name(u'Numbers')
+shMobAtk = wb2.sheet_by_name(u'MobsVerbs')
+shKings = wb2.sheet_by_name(u'kings')
+shAdvice = wb2.sheet_by_name(u'Advice')
+shAdjecs = wb2.sheet_by_name(u'adjective')
+
+shWORDMAKER = wb3.sheet_by_name(u'langCaesar')
 
 def pick_random(prob_list):
 	#takes a list of tuples, index followed by probability (out of one)
@@ -139,12 +153,15 @@ def Verber(strIn):
 	#like walrusstabber or orclicker
 	
 	strTail = ''.join([x for x in re.split(r'( +)',strIn)[1:]])	#cut off tail of strings when they are like <verb> at
-	strIn = re.split(r'( +)',strIn)[0]						#the first word <verb> at strings
+	strIn = re.split(r'( +)',strIn)[0][:-1]						#the first word <verb> at strings
 	
 	patterns = \
 	(
-	(r'[ie]t$','$','ter'),
-	(r'[ie]p$','$','per'),
+	(r'ea[t]$|ou[t]$','$','er'),
+	(r'[aeiou]t$','$','ter'),
+	(r'[aeiou]p$','$','per'),
+	(r'[aeiou]b$','$','ber'),
+	(r'bber$|tter$','$','er'),
 	(r'[s|p]t$|[p|s]p$', '$','er'),	
 	(r't$|p$|b$', '$', 'er'),
 	(r'e$', '$', 'r'),
@@ -154,8 +171,28 @@ def Verber(strIn):
 	ruleList = map(buildRule, patterns)
 	for rule in ruleList:
 		strOut = rule(strIn)
+		if strOut: return strOut# + strTail
+		
+def Verbing(strIn):
+	#turns a verb into a verbing
+	
+	strTail = ''.join([x for x in re.split(r'( +)',strIn)[1:]])	#cut off tail of strings when they are like <verb> at
+	strIn = re.split(r'( +)',strIn)[0]						#the first word <verb> at strings
+	
+	patterns = \
+	(
+	(r'ea[t]$|ou[t]$','$','ing'),
+	(r'[aeiou]t$','$','ting'),
+	(r'[aeiou]p$','$','ping'),
+	(r'[aeiou]b$','$','bing'),
+	('$', '$', 'ing'),					#everything else??
+	)
+	ruleList = map(buildRule, patterns)
+	for rule in ruleList:
+		strOut = rule(strIn)
 		if strOut: return strOut + strTail
-
+		
+		
 #################################################
 # adds a random diacritical mark to each letter #
 # depending on probability						#
@@ -163,7 +200,6 @@ def Verber(strIn):
 # STRING TO SCREEN TERMINAL. FUCK				#
 #################################################
 def FlavorLetter(oNam, prob=0.1):
-		#print oNam
 		flavNam = ""
 		possComb = [u'\u0300',u'\u0301',u'\u0302',u'\u0303',u'\u0308',u'\u0311',u'\u0327']
 		for l in oNam:
@@ -238,20 +274,32 @@ def RandomProperNoun():
 	return strOut.title()
 	
 def FlavorfulProperNoun():
-	strVerb = SimplePicker(shAtak,0)[:-1].lower()
+	strVerb = SimplePicker(shAtak,0).strip().lower()
 	
 	strVerber = Verber(strVerb)
 	
 	iMobType = random.randint(0,1)
 	strRanMob = SimplePicker(shMobs, iMobType)
-	k = 1
-	while k==1:
-		if ' ' in strRanMob.strip():
-			strRanMob = SimplePicker(shMobs, iMobType)
-		else:
-			k = 2
-	#strFullName = strHroNam.title() + ' ' + strRanMob.title() +'-' + strAttack.lower()
-	strOut = strRanMob.title() +'-' + strVerber.lower()
+	
+	object_list = []
+	object_list.extend(filter(None, shMobAtk.col_values(0,1)))
+	object_list.extend(filter(None, shMobAtk.col_values(1,1)))
+	object_list.extend(filter(None, shMobAtk.col_values(2,1)))
+	object_list.extend(filter(None, shPlaces.col_values(4,1)))
+	object_list.extend(filter(None, shPlaces.col_values(5,1)))
+	
+	# k = 1
+	# while k==1:
+		# if ' ' in strRanMob.strip():
+			# strRanMob = SimplePicker(shMobs, iMobType)
+		# else:
+			# k = 2
+		
+	strRanObject = random.choice(object_list)
+
+	strOut = strRanObject.title() + '-' + strVerber.title()
+
+	#strOut = strRanMob.title() +'-' + strVerber.lower()
 	return strOut
 	
 def ExitString():
@@ -261,7 +309,7 @@ def ExitString():
 	strOut = ','.join([item[1] for item in sorted(exit_list)])
 	return strOut
 	
-def DoWeAddPhrase(strIn, strAdd, prob):
+def DoWeAddPhrase(strIn, strAdd, prob=1):
 	#can we add the two given strings
 	#also maybe we dont even if we can
 	if (random.random() < prob) and (len(strIn) + len(strAdd)) < 140:
@@ -277,13 +325,16 @@ def AnAFixer(strIn):
 	while k == 1:
 		if strIn.strip() != "":
 			if strIn.lower().strip() == 'belly of the beast' or 'yggdrasil' in strIn.lower():
-				strOut = 'The %s' % (strIn.strip())
+				#strOut = 'The %s' % (strIn.strip())
+				strOut = ' '.join(['The', strIn.strip()])
 				k = 2
-			if strIn[0].strip() in strVowel:
-				strOut = 'An %s' % (strIn.strip())
+			elif strIn[0].strip() in strVowel:
+				strOut = ' '.join(['An', strIn.strip()])
+				#strOut = 'An %s' % (strIn.strip())
 				k =2 
 			else:
-				strOut = 'A %s' % (strIn.strip())
+				strOut = ' '.join(['A', strIn.strip()])
+				#strOut = 'A %s' % (strIn.strip())
 				k =2
 		else:
 			#print 'errpr'
@@ -291,16 +342,114 @@ def AnAFixer(strIn):
 			k = 2
 		
 	return strOut.title()
+
+def SomeAffixer(strIn):
+	strOut = ' '.join(['some',strIn.strip()])
 	
 def RollDice(numDice,sizeDice):
 	diceTotal = 0
 	k = 0
 	while k < numDice:
-		diceroll = random.randint(1,sizeDice)
-		diceTotal = diceTotal + diceroll
-		k = k + 1
+		diceTotal += random.randint(1,sizeDice)
+		k += 1
 	return diceTotal
 
+def NumberNamer():
+	sPlur = SimplePicker(shNumber,0)
+	sSingle = SimplePicker(shNumber,1)
+	sTens = SimplePicker(shNumber,2)
+	sBigNum = SimplePicker(shNumber,3)
+	
+	sSmaOrd = SimplePicker(shNumber,4)
+	sBigOrd = re.sub(r'y$','ieth',sTens)
+	
+	numOpt = \
+			(
+			( [sPlur, .100] ),		#twin
+			( [sSingle, .400] ),		#three
+			( [sTens, .250] ),		#forty
+			( [sBigNum, .020] ),		#million
+			( [sSmaOrd, .090] ),		#first
+			( [sBigOrd, .080] ),		#seventieth
+			( [' '.join([sSingle,'hundred']), .040]),			#one hundred
+			( [' '.join([sSingle,'hundred',sBigNum]), .010]),	#two hundred million
+			( [' '.join([sSingle,sBigNum]), .007]),		#four billion
+			( [' '.join([sTens,sBigNum]), .003]),		#twenty billion
+			)
+			
+	return pick_random(	numOpt )
+	
+def NamedPlace(debug=0):
+	sNumb = NumberNamer().encode('utf-8')
+	# sAdj = SimplePicker(shPlaces,0).encode('utf-8')
+	sAdj = str(SimplePicker(shPlaces,0))
+	sPlace = SimplePicker(shPlaces,1).encode('utf-8')
+	sUnique = SimplePicker(shPlaces,3).encode('utf-8')
+	sObj = SimplePicker(shPlaces,4).encode('utf-8')
+	sObjs = SimplePicker(shPlaces,5).encode('utf-8')
+		
+	if re.search('th$|first|second|third',sNumb) or sNumb == 'one':
+		sOpt1A = ' '.join([sNumb, sPlace])
+	elif random.choice( [0,1] ) == 1:
+		sOpt1A = ' '.join([sNumb, Pluralizer(sPlace)])
+	else:
+		sOpt1A = Pluralizer(sPlace)
+	#print sOpt1
+	
+	if re.search('th$|first|second|third',sNumb) or sNumb == 'one':
+		sOpt1B = ' '.join([sNumb, sAdj, sPlace])
+	elif random.choice( [0,1] ) == 1:
+		sOpt1B = ' '.join([sNumb, sAdj, Pluralizer(sPlace)])
+	else:
+		sOpt1B = ' '.join([sAdj, Pluralizer(sPlace)])
+	#print sOpt1A
+	sOpt1C = sUnique
+	
+	opt1_prob = [ [sOpt1A, .55] , [sOpt1B, .40] , [sOpt1C, .05] ]
+	sOpt1 = pick_random(opt1_prob)
+	
+	sOpt2A = ' '.join([' of the', sObj])
+	sOpt2B = ' '.join([' of',sObjs])
+	
+	if sOpt1.decode('ascii',errors='ignore') == sOpt1C.decode('ascii',errors='ignore'):
+		return sOpt1
+	else:	
+		return DoWeAddPhrase("The %s" % (sOpt1.title()),random.choice([sOpt2A.title(),sOpt2B.title()]),0.5)
+		
+def TavernMaker():
+	sSaloon = SimplePicker(shPlaces,2).strip().title()
+	
+	sObject1 = SimplePicker(shPlaces,4).strip().title()	#cup
+	sObject2 = SimplePicker(shPlaces,4).strip().title()	#sword
+
+	sTitles = SimplePicker(shKings,0).strip().title()			#king's
+	sHumDesc1 = SimplePicker(shKings,3).strip().title()			#anxious
+	
+	iMobType = random.randint(0,1)
+	mob_list = filter(None, shMobAtk.col_values(iMobType,1))
+	allit_list = []
+	for i in mob_list:
+		if i[0] == sHumDesc1[0]:
+			allit_list.append(i)	#gets list of all alliterive mobs
+	if len(allit_list) == 1:
+		strRanMob = allit_list[0]
+	elif len(allit_list) == 0:
+		strRanMob = 'len(alliterive_list) = 0'
+	else:
+		strRanMob = allit_list[random.randint(0,len(allit_list)-1)].strip().title()
+		
+		
+	optTavern = []
+	
+	optTavern.append(DoWeAddPhrase('The %s and %s ' % (sObject1, sObject2), sSaloon, .5))
+	optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, sObject1), sSaloon, .8))
+	optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, strRanMob), sSaloon, .3))
+	optTavern.append("The %s %s's %s" % (sHumDesc1, sTitles, sSaloon))
+	optTavern.append("The %s of %ss"  % (sSaloon, sObject1))
+	optTavern.append("The %s of the %s" % (sSaloon, sObject1))
+	optTavern.append("The %s of the %s %s" % (sSaloon, sHumDesc1, sObject1))
+	
+	return ' '.join(random.choice(optTavern).split())
 ############################################################
 ############################################################
 ##														  ##
@@ -310,6 +459,50 @@ def RollDice(numDice,sizeDice):
 ##														  ##
 ############################################################
 ############################################################	
+sRanMob = PickRandomMob()
+sAniMob = PickAnimalMob()
+sSupMob = PickSuperMob()
+sHumMob = PickHumanoidMob()
+	
+sAttacks = SimplePicker(shAtak,0).strip()
+sStatus = SimplePicker(shAtak,1).strip()
+sClass = SimplePicker(shAtak,2).strip()
+sBodyPt = SimplePicker(shAtak,3).strip()
+sDefeat = SimplePicker(shAtak,4).strip()
+sDefeating = SimplePicker(shAtak,5).strip()
+sDefeated = SimplePicker(shAtak,6).strip()
+sAbilty = SimplePicker(shAtak,7).strip()
+	
+sUArriveAt = SimplePicker(shDung,0).strip()
+sDungeon = SimplePicker(shDung,1).strip()
+sItIs = SimplePicker(shDung,2).strip()
+sHeroItem = SimplePicker(shDung,3).strip()
+sItArrivesAt = SimplePicker(shDung,4).strip()
+sItAppears = SimplePicker(shDung,5).strip()
+	
+sMaterial = SimplePicker(shShop,0).strip()
+sShopItem = SimplePicker(shShop,1).strip()
+sColors = SimplePicker(shShop,2).strip()
+sEffect = SimplePicker(shShop,3).strip()
+sDoubts = SimplePicker(shShop,4).strip()
+	
+sTitle = SimplePicker(shKing,0)
+#gender tuple stuffs
+sKingDoes = SimplePicker(shKing,2)
+sHumDesc1 = SimplePicker(shKing,3)
+sHumDesc2 = SimplePicker(shKing,3)
+sHumDesc3 = SimplePicker(shKing,3)
+	
+sPropNoun1 = RandomProperNoun()
+sPropNoun2 = RandomProperNoun()
+sPropNoun3 = RandomProperNoun()
+	
+sFlavNoun = FlavorfulProperNoun()
+	
+arrNumOfAdjProb = [[0,.8],[1,.12],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
+sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
+	
+
 
 def Status01(debug=0):	### Attacks
 	#2 
@@ -462,38 +655,38 @@ def Status03(debug=0):	#AREA DESC SHORT
 	
 	return strOut
 
-def TavernMaker():
-	sObject1 = SimplePicker(shShop,6).strip().title()	#cup
-	sObject2 = SimplePicker(shShop,6).strip().title()	#sword
-	sSaloon = SimplePicker(shShop,7).strip().title()
+# def TavernMaker():
+	# sObject1 = SimplePicker(shShop,6).strip().title()	#cup
+	# sObject2 = SimplePicker(shShop,6).strip().title()	#sword
+	# sSaloon = SimplePicker(shShop,7).strip().title()
 	
-	sTitles = SimplePicker(shKing,0).title()			#king's
-	sHumDesc1 = SimplePicker(shKing,3).title()			#anxious
+	# sTitles = SimplePicker(shKing,0).title()			#king's
+	# sHumDesc1 = SimplePicker(shKing,3).title()			#anxious
 	
-	iMobType = random.randint(0,1)
-	mob_list = filter(None, shMobs.col_values(iMobType,1))
-	allit_list = []
-	for i in mob_list:
-		if i[0] == sHumDesc1[0]:
-			allit_list.append(i)	#gets list of all alliterive mobs
-	if len(allit_list) == 1:
-		strRanMob = allit_list[0]
-	elif len(allit_list) == 0:
-		strRanMob = 'len(alliterive_list) = 0'
-	else:
-		strRanMob = allit_list[random.randint(0,len(allit_list)-1)].title()
+	# iMobType = random.randint(0,1)
+	# mob_list = filter(None, shMobs.col_values(iMobType,1))
+	# allit_list = []
+	# for i in mob_list:
+		# if i[0] == sHumDesc1[0]:
+			# allit_list.append(i)	#gets list of all alliterive mobs
+	# if len(allit_list) == 1:
+		# strRanMob = allit_list[0]
+	# elif len(allit_list) == 0:
+		# strRanMob = 'len(alliterive_list) = 0'
+	# else:
+		# strRanMob = allit_list[random.randint(0,len(allit_list)-1)].title()
 		
-	optTavern = []
+	# optTavern = []
 	
-	optTavern.append(DoWeAddPhrase('The %s and %s ' % (sObject1, sObject2), sSaloon, .5))
-	optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, sObject1), sSaloon, .8))
-	optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, strRanMob), sSaloon, .3))
-	optTavern.append("The %s %s's %s" % (sHumDesc1, sTitles, sSaloon))
-	optTavern.append("The %s of %ss"  % (sSaloon, sObject1))
-	optTavern.append("The %s of the %s" % (sSaloon, sObject1))
-	optTavern.append("The %s of the %s %s" % (sSaloon, sHumDesc1, sObject1))
+	# optTavern.append(DoWeAddPhrase('The %s and %s ' % (sObject1, sObject2), sSaloon, .5))
+	# optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, sObject1), sSaloon, .8))
+	# optTavern.append(DoWeAddPhrase('The %s %s ' % (sHumDesc1, strRanMob), sSaloon, .3))
+	# optTavern.append("The %s %s's %s" % (sHumDesc1, sTitles, sSaloon))
+	# optTavern.append("The %s of %ss"  % (sSaloon, sObject1))
+	# optTavern.append("The %s of the %s" % (sSaloon, sObject1))
+	# optTavern.append("The %s of the %s %s" % (sSaloon, sHumDesc1, sObject1))
 	
-	return random.choice(optTavern)
+	# return random.choice(optTavern)
 	
 def Status04(debug=0):	### SHOP ADS
 	#2 
@@ -525,18 +718,16 @@ def Status04(debug=0):	### SHOP ADS
 	strOpt3 = ' ' + sMaterial.lower().strip()
 	
 	strEnd = ' %s for %i gold pieces! Each!' % (sShopItem.lower(), random.randint(1,5000))
+	
+	strOpt = []
+	strOpt.append(DoWeAddPhrase(strStart, strOpt1, 1))
+	strOpt.append(DoWeAddPhrase(strStart, strOpt2, 1))
+	strOpt.append(DoWeAddPhrase(strStart, strOpt3, 1))
+	
+	strStart = strOpt[pick_random([ [0, .18],
+								[1,.22],
+								[2,.60], ] )]
 
-	optID = [[1,.18],[2,.22],[3,.6]]
-	
-	iChoice = pick_random(optID)
-	
-	if iChoice == 1:
-		strStart = DoWeAddPhrase(strStart, strOpt1, 1)
-	elif iChoice == 2:
-		strStart = DoWeAddPhrase(strStart, strOpt2, 1)
-	elif iChoice == 3:
-		strStart = DoWeAddPhrase(strStart, strOpt3, 1)
-		
 	strUpdate = strStart + strEnd
 	
 	return strUpdate
@@ -610,9 +801,32 @@ def Status05(debug=0): ### DOUBTFUL SHOP
 	
 	return strOut
 	
-def Status06(debug=0): ### POTIONS
-#depe
-	pass
+def Status06(debug=0): ### drinking
+	
+	col_list = filter(None, shMobs.col_values(2,1))
+	col_list.append('DM')
+	col_list.append('player to your right')
+	col_list.append('player to your left')
+	col_list.append('Any PC')
+	col_list.append('Any NPC')
+	col_list.append('Any character')
+	col_list.append('Someone')
+
+	sHumoid = col_list[random.randint(0,len(col_list)-1)]
+
+	if sHumoid[:4] != 'Any ' and sHumoid[:4] != 'Some':
+		sHumoid = ' '.join([random.choice(['The','Any']),sHumoid])
+	
+	sClause = SimplePicker(shDrink,0).encode('utf8',errors='replace').strip()
+	sEvent = SimplePicker(shDrink,1).encode('utf8',errors='replace').strip()
+	sRule = SimplePicker(shDrink,2).encode('utf8',errors='replace').strip()
+	
+	strOpt = []
+	strOpt.append('%s %s %s, %s!' % (sClause, sHumoid, sEvent, sRule))
+	strOpt.append('New Rule! %s %s %s, %s!' % (sClause, sHumoid, sEvent, sRule))
+	
+	return random.choice(strOpt)
+
 	
 def Status07(debug=0):### YOU POTIONS
 	
@@ -664,7 +878,7 @@ def Status07(debug=0):### YOU POTIONS
 			sTaste4 = SimplePicker(shShop,8).strip()
 		else:
 			k = 2
-	
+		
 	sPie = SimplePicker(shShop,11).strip()
 	
 	sColors = SimplePicker(shShop,2).strip()
@@ -681,6 +895,7 @@ def Status07(debug=0):### YOU POTIONS
 				sAdj1 + ", " + sAdj2 + " and " + sAdj3]
 	sPotion1 = (random.choice(sAdjOpt) + " " + sLiquid1).strip()
 	sPotion2 = (random.choice(sAdjOpt) + " " + sLiquid2).strip()
+	
 	#####################################################			
 	sPieces = "with %s %s" % (sAdj4, sPie)
 	#####################################################
@@ -693,18 +908,18 @@ def Status07(debug=0):### YOU POTIONS
 									"smells like %s but tastes like %s." % (sFlav1, sFlav2)])
 	#####################################################
 	
-	sPotionPhrase1 = DoWeAddPhrase("This %s" % sPotion, " (" + sPieces + ")",.3) + " " + sSmellTaste
-	sPotionPhrase2 = DoWeAddPhrase("%ss" % sPotion.title(), " (" + sPieces + ")",.3) + " " + sCanCause + "."
+	sPotionPhrase1 = DoWeAddPhrase("This %s" % sPotion1, " (" + sPieces + ")",.3) + " " + sSmellTaste
+	sPotionPhrase2 = DoWeAddPhrase("%ss" % sPotion1.title(), " (" + sPieces + ")",.3) + " " + sCanCause + "."
 	
-	sPotionA = "Be sure to avoid %ss%s, though!" % (sPotion.strip(), DoWeAddPhrase("", " (" + sPieces + ")", .2))
+	sPotionA = "Be sure to avoid %ss%s, though!" % (sPotion2.strip(), DoWeAddPhrase("", " (" + sPieces + ")", .2))
 	sPotionB = "Those %s %s!" % (sCanCause, sEffect2)
 	
-	sPotion3 = "If you need to cure %s, quaff a %s%s." % (sEffect1,sPotion,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", DoWeAddPhrase(sPotionA, sPotionB, .2),.2)
+	sPotion3 = "If you need to cure %s, quaff a %s%s." % (sEffect1,sPotion1,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", DoWeAddPhrase(sPotionA, sPotionB, .2),.2)
 	
-	sPotion4 = "If you want to gain %s, quaff a %s%s." % (sEffect1,sPotion,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", DoWeAddPhrase(sPotionA, sPotionB, .2),.2)
+	sPotion4 = "If you want to gain %s, quaff a %s%s." % (sEffect1,sPotion1,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", DoWeAddPhrase(sPotionA, sPotionB, .2),.2)
 	
-	sPotion5 = "Afflicted by %s? Quaff a %s%s." % (sEffect1,sPotion,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", sPotionA, .2)
-	sPotion6 = "Wishing you had %s? Try a %s%s." % (sEffect1,sPotion,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", sPotionA, .2)
+	sPotion5 = "Afflicted by %s? Quaff a %s%s." % (sEffect1,sPotion1,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", sPotionA, .2)
+	sPotion6 = "Wishing you had %s? Try a %s%s." % (sEffect1,sPotion1,DoWeAddPhrase(""," (" + sPieces + ")",.3)) + DoWeAddPhrase(" ", sPotionA, .2)
 	return random.choice([sPotionPhrase1,sPotionPhrase1,sPotionPhrase1,
 							sPotionPhrase2,sPotionPhrase2,sPotionPhrase2,
 							sPotion3,
@@ -781,17 +996,18 @@ def Status09(debug=0):##### YOU KING
 	sDefeater = Verber(SimplePicker(shAtak,4).strip())
 	
 	sDungeon = SimplePicker(shDung,1).strip()
+		
+	optStr = []
 	
-	x = random.randint(0,10)
-	if x <= 7:
-		strStart = 'You are reborn as %s, the %s and %s %s of the land of %s!' % (strFullName.title(), sHumDesc1.lower(), sHumDesc2.lower(), sTitle.title(), sPropNoun2.title())
-	elif x == 8:
-		strStart = 'You are %s %s, the %s %s of %s %s and %s %s.' % (sTitle.title(), sPropNoun1.title(), sHumDesc1.lower(), sRelation, AnAFixer(sHumDesc2).lower(), sHumMob1.title(), AnAFixer(sHumDesc3).lower(), sHumMob2.title())
-	elif x == 9:
-		strStart = 'You are %s, %s of %s! You have %s!' % (sPropNoun1.title(), sRelation, sPropNoun2.title(), sHeroItem)
-	elif x == 10:
-		strStart = "Oh my God! Tell me you're not %s, %s of the %s %s!" % (strFullName, sDefeater.lower(), sHumDesc1.title(), sDungeon.title())
-	return strStart
+	optStr.append('You are reborn as %s, the %s and %s %s of the land of %s!' % (strFullName.title(), sHumDesc1.lower(), sHumDesc2.lower(), sTitle.title(), sPropNoun2.title()))
+	optStr.append('You are %s %s, the %s %s of %s %s and %s %s.' % (sTitle.title(), sPropNoun1.title(), sHumDesc1.lower(), sRelation, AnAFixer(sHumDesc2).lower(), sHumMob1.title(), AnAFixer(sHumDesc3).lower(), sHumMob2.title()))
+	optStr.append('You are %s, %s of %s! You have %s!' % (sPropNoun1.title(), sRelation, sPropNoun2.title(), sHeroItem))
+	optStr.append("Oh my God! Tell me you're not %s, %s of the %s %s!" % (strFullName, sDefeater.lower(), sHumDesc1.title(), sDungeon.title()))
+
+	return optStr[pick_random([ [0, .400],
+								[1,.300],
+								[2,.200],
+								[3,.100] ] )]
 	
 def Status10(debug=0): ##### STATUSED BY A WIZARD
 	#3 
@@ -806,29 +1022,28 @@ def Status10(debug=0): ##### STATUSED BY A WIZARD
 	
 	sColors = SimplePicker(shShop,2).strip()
 
-	
 	if random.randint(0,1) == 1:
 		strLfOrRt = 'right'
 	else:
 		strLfOrRt = 'left'
-		
-	optID = [[0,.22],[1,.21],[2,.18],[3,.14],[4,.13],[5,.12]]
-	iChoice = pick_random(optID)
+
+	optStr = []
+	optStr.append('You have been %s by %s, a level %i %s %s!' % (sStatus,sPropNoun1,random.randint(1,99),sHumMob,sClass))
+	optStr.append('Your %s %s has been %s by %s, a level %i %s %s!' % (strLfOrRt,sBodyPt,sStatus,sPropNoun1,random.randint(1,99),sHumMob,sClass))
+	optStr.append('You have been %s by a level %i %s %s!' % (sStatus,random.randint(1,99),sHumMob,sClass))
+	optStr.append('You have been %s by %s. Is this awesome? y/n' % (sStatus, AnAFixer(sClass)))
+	optStr.append('You have been %s by %s potion.' % (sStatus, AnAFixer(sColors)))
+	optStr.append('Your %s %s has been %s by %s potion.' % (strLfOrRt,sBodyPt,sStatus,AnAFixer(sColors)))
 	
-	if iChoice == 0:
-		strOut = 'You have been %s by %s, a level %i %s %s!' % (sStatus,sPropNoun1,random.randint(1,99),sHumMob,sClass)
-	elif iChoice == 1:
-		strOut = 'Your %s %s has been %s by %s, a level %i %s %s!' % (strLfOrRt,sBodyPt,sStatus,sPropNoun1,random.randint(1,99),sHumMob,sClass)
-	elif iChoice == 2:
-		strOut = 'You have been %s by a level %i %s %s!' % (sStatus,random.randint(1,99),sHumMob,sClass)
-	elif iChoice == 3:
-		strOut = 'You have been %s by %s. Is this awesome? y/n' % (sStatus, AnAFixer(sClass))
-	elif iChoice == 4:
-		strOut = 'You have been %s by %s potion.' % (sStatus, AnAFixer(sColors))
-	elif iChoice == 5:
-		strOut = 'Your %s %s has been %s by %s potion.' % (strLfOrRt,sBodyPt,sStatus,AnAFixer(sColors))
-	return strOut
-	
+	# return optStr[pick_random([ [0, .22],
+								# [1,.21],
+								# [2,.18],
+								# [3,.14],
+								# [4,.13],
+								# [3,.12], ] )]
+								
+	return random.choice(optStr)
+
 def Status11(debug=0): ##### Your race
 
 	sAttacks = SimplePicker(shAtak,0).strip()
@@ -849,11 +1064,8 @@ def Status11(debug=0): ##### Your race
 	return strOut
 	
 def Status12(debug=0): #### Bits and Pieces
-	
 	sBits = SimplePicker(shBITS,0).strip()
-	
 	strOut = sBits
-	
 	return strOut
 	
 def Status13(debug=0): #### Goofy Book Review shit
@@ -861,29 +1073,29 @@ def Status13(debug=0): #### Goofy Book Review shit
 	while len(strOut) >= 140:
 		sNoun1 = SimplePicker(shBOOK,0).strip().encode('utf8',errors='replace') #idea of
 		sNoun2 = SimplePicker(shBOOK,0).strip().encode('utf8',errors='replace') #reading of
-			
+		sBook = SimplePicker(shBOOK,0).strip().encode('utf8',errors='replace') 	#informal sketch of
+		
 		sMody1 = SimplePicker(shBOOK,1).strip().encode('utf8',errors='replace') #civil society
 		sMody2 = SimplePicker(shBOOK,1).strip().encode('utf8',errors='replace') #the image
 		
 		sVerb = SimplePicker(shBOOK,2).strip().encode('utf8',errors='replace') 	#highlights
-		sBook = SimplePicker(shBOOK,3).strip().encode('utf8',errors='replace') 	#informal sketch of
-		sRevw = SimplePicker(shBOOK,4).strip().encode('utf8',errors='replace') 	#is important
+		
+		sRevw = SimplePicker(shBOOK,3).strip().encode('utf8',errors='replace') 	#is important
 		
 		sPropNoun1 = RandomProperNoun()
 		
-		x = random.randint(0,10)
-		if x == 0:
-			#strOut = "The " + sNoun1 + " " + sMody1 + " " + sVerb + " " + "the " + sNoun2 + " " + sMody2 + "."
-			strOut = "The %s %s %s the %s %s." % (sNoun1,sMody1,sVerb,sNoun2,sMody2)
-		elif x == 1:
-			#strOut = "Your " + sBook + " the relationship between the " + sNoun1 + " " + sMody1 + " and the " + sNoun2 + " " + sMody2 + " " + sRevw + "."
-			strOut = "Your %s the interplay between the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw)
-		elif x == 2:
-			strOut = "%s\'s %s the %s %s and the %s %s %s." % (sPropNoun1,sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw)
-		elif x >= 3:
-			strOut = "Your %s the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw)
+		optStr = []
+		optStr.append("The %s %s %s the %s %s." % (sNoun1,sMody1,sVerb,sNoun2,sMody2))
+		optStr.append("Your %s the interplay between the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
+		optStr.append("%s\'s %s the %s %s and the %s %s %s." % (sPropNoun1,sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
+		optStr.append("Your %s the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
 		
-	return strOut
+		strOut = optStr[pick_random([ [0, .20],
+									[1,.10],
+									[2,.30],
+									[3,.50] ] )]
+									
+		return strOut							
 	
 def Status14(debug=0):		### GIBBERISH
 	numWords = random.randint(3,14)
@@ -905,61 +1117,62 @@ def Status14(debug=0):		### GIBBERISH
 			strStart += " "
 			
 	strOut = ''
-	optID = [[0,.400],[1,.150],[2,.140],[3,.130],[4,.100],[5,.050],[6,.020],[7,.010]]
-	punctOpt = [' ',
-				', ',
-				'. ',
-				'? ',
-				'! ',
-				'?! ',
-				'!! ',
-				': ']
+
+	punctOpt = [ [' ',.400],
+				[', ',.150],
+				['. ',.140],
+				['? ',.130],
+				['! ',.100],
+				['?! ',.050],
+				['!! ',.020],
+				[': ',.010]]
 
 	for word in strStart.lower().split():
-		iChoice = pick_random(optID)
+		punc = pick_random(punctOpt)
 		if strOut != '':
-			if any(x in ['.','?','!'] for x in punctOpt[iChoice]):				#if puct is a sentence ender
-				strOut = punctOpt[iChoice].join([strOut, word.capitalize()])	#combine and cpitalize the new word
+			if any(x in ['.','?','!'] for x in punc):			#if puct is a sentence ender
+				strOut = punc.join([strOut, word.capitalize()])	#combine and cpitalize the new word
 			else:
-				strOut = punctOpt[iChoice].join([strOut, word])
+				strOut = punc.join([strOut, word])
 		else:
 			strOut = word.capitalize()
 	
 	
-	punc = punctOpt[pick_random(optID)] #pick ending punctuation
+	punc = pick_random(punctOpt) #pick ending punctuation
 	k = 0
 	while k < 1:
 		if any(x in ['.','?','!'] for x in punc):
 			k = 2
 		else:
-			punc = punctOpt[pick_random(optID)]
+			punc = pick_random(punctOpt)
 			
 	#print len(strOut + punc)
 	return strOut + punc
 	
-def Status15(debug=0):		### GIBBERISH
+def Status15(debug=0):		### LOST CIVILIZATION
 	sPlace = RandomProperNoun()
 	
-	sTrait = SimplePicker(shLOST,0).strip()
-	sBiome = SimplePicker(shLOST,1).strip()
-	sGovrn = SimplePicker(shLOST,2).strip()
+	sTrait = SimplePicker(shLOSTEMP,0).strip()
+	sBadT1 = SimplePicker(shLOSTEMP,1).strip()
+	sBadT2 = SimplePicker(shLOSTEMP,1).strip()
 	
-	sKnown = SimplePicker(shLOST,3).strip()
-	sAchev = SimplePicker(shLOST,4).strip()
-	sTechs = SimplePicker(shLOST,5).strip()
-	sDisas = SimplePicker(shLOST,6).strip()
+	sBiome = SimplePicker(shLOSTEMP,2).strip()
+	sGovrn = SimplePicker(shLOSTEMP,3).strip()
 	
-	sBadT1 = SimplePicker(shLOST,7).strip()
-	sBadT2 = SimplePicker(shLOST,7).strip()
+	sKnown = SimplePicker(shLOSTEMP,4).strip()
+	sAchev = SimplePicker(shLOSTEMP,5).strip()
+	sTechs = SimplePicker(shLOSTEMP,6).strip()
+	sDisas = SimplePicker(shLOSTEMP,7).strip()
 	
-	sFlaws = SimplePicker(shLOST,8).strip()
+	sFlaws = SimplePicker(shLOSTEMP,8).strip()
 	
-	sRuin1 = SimplePicker(shLOST,9).strip()
-	sRuin2 = SimplePicker(shLOST,9).strip()
+	sRuin1 = SimplePicker(shLOSTEMP,9).strip()
+	sRuin2 = SimplePicker(shLOSTEMP,9).strip()
+	
 	k = 1
 	while k == 1:
 		if sRuin1 == sRuin2:
-			sRuin2 = SimplePicker(shLOST,9).strip()
+			sRuin2 = SimplePicker(shLOSTEMP,9).strip()
 		else:
 			k = 2
 	
@@ -993,49 +1206,290 @@ def Status15(debug=0):		### GIBBERISH
 	
 	return sOut
 	
-# def Status16(debug=0):		### GIBBERISH
-
-def StatusMaker(debug=0,force=None):
-
-	optID = [[1,.105],[2,.120],[3,.095],[4,.035],[5,.010],[6,.045],[7,.050],[8,.100],[9,.090],[10,.070],[11,.005],[12,.075],[13,.060],[14,.055],[15,.085]]
+def Status00(debug=0):
+	sGoal1 = SimplePicker(shAdvice,0).strip()
+	sGoal2 = SimplePicker(shAdvice,0).strip()
 	
-	iChoice = pick_random(optID)
+	#sVill = SimplePicker(shAdvice,1).strip()
+	sAssist = SimplePicker(shAdvice,3).strip()
 	
-	if force is not None:
-		iChoice = force
-		
-	if iChoice == 1:
-		strUpdate = Status01(debug) #### Attacks
-	elif iChoice == 2:
-		strUpdate = Status02(debug) #### AREA DESC LONG 
-	elif iChoice == 3:
-		strUpdate = Status03(debug) #### AREA DESC SHORT
-	elif iChoice == 4:
-		strUpdate = Status04(debug) #### SHOP ADS
-	elif iChoice == 5:
-		strUpdate = Status05(debug) #### DOUBTFUL SHOP ADS
-	elif iChoice == 6:
-		strUpdate = Status07(debug) #### deprecated deprecated deprecated
-	elif iChoice == 7:
-		strUpdate = Status07(debug) #### POTIONS
-	elif iChoice == 8:
-		strUpdate = Status08(debug) #### KING REPORT
-	elif iChoice == 9:
-		strUpdate = Status09(debug) #### YOU KING
-	elif iChoice == 10:
-		strUpdate = Status10(debug) #### STATUSED BY A WIZARD
-	elif iChoice == 11:
-		strUpdate = Status11(debug) #### Your race cant do that
-	elif iChoice == 12:
-		strUpdate = Status12(debug) #### Bits and Pieces
-	elif iChoice == 13:
-		strUpdate = Status13(debug) #### Goofy Book Review shit
-	elif iChoice == 14:
-		strUpdate = Status14(debug)	#### GIBBERISH
-	elif iChoice == 15:
-		strUpdate = Status15(debug)	#### Lost Civilization
+	sAction1 = SimplePicker(shAdvice,2).strip()
+	sAction2 = SimplePicker(shAdvice,2).strip()
+	sAction3 = SimplePicker(shAdvice,2).strip()
+	
+	sOptAct = []
+	sOptAct.extend([sAction1,sAction2,sAction3])
+	sOptAct.append(DoWeAddPhrase(sAction1," and " + sAction2))
+	sOptAct.append(DoWeAddPhrase(sAction1,", " + sAction2 + " and " + sAction3))
+	sAct = random.choice(sOptAct)
+	#print sAct
+	
+	sOptGoal = []
+	sOptGoal.extend([sGoal1,sGoal2])
+	sOptGoal.append(DoWeAddPhrase(sGoal1," and " + sGoal2))
+	
+	sGoals = random.choice(sOptGoal)
+	
+	strOut = ''.join([DoWeAddPhrase("%s by %s" % (sGoals.capitalize(),sAct), ", with the help of %s" % (AnAFixer(sAssist)), .5), "."])
+	return strOut
+	
+def Status16(debug=0):
+	sSize = SimplePicker(shAdjecs,0).strip()
+	
+	sEvil = SimplePicker(shAdjecs,1).strip()
+	
+	sKey1 = SimplePicker(shAdjecs,4).strip()
+	sKey2 = SimplePicker(shAdjecs,5).strip()
+	
+	sAdj1 = SimplePicker(shAdjecs,7).strip()
+	
+	sColor1 = SimplePicker(shAdjecs,8).strip()
+	sColor2= SimplePicker(shAdjecs,8).strip()
+	
+	sSmell = SimplePicker(shAdjecs,10).strip()
+	
+	sSD = SimplePicker(shAdjecs,11).strip()
+	sSO = SimplePicker(shAdjecs,12).strip()
+	sSE = SimplePicker(shAdjecs,13).strip()
+	sShape = SimplePicker(shAdjecs,15).strip()
+
+	sKey = []
+	sKey.append(sKey1)
+	sKey.append(AnAFixer((sColor2+" "+sKey2)))
+	sKey.append(sKey1 +" and " + AnAFixer(sColor2+" "+sKey2))
+	sKeys = random.choice(sKey)
+
+	strOpt = []
+	strOpt.append("%s portal has just opened! Do you see it? It's %s %s %s. Maybe it'll take us to %s" % (AnAFixer(sSize.lower()), AnAFixer(sAdj1),sColor1,sShape, NamedPlace())+'?!')
+	strOpt.append("Seek out the portal to %s. Know it by the smell of %s." % (NamedPlace(), sSmell) )
+	strOpt.append("Seek out the portal to %s. Know it by the sound of %s %s." % (NamedPlace(), AnAFixer(sSD), sSO ) )
+	strOpt.append("Beware the %s portal to %s!" % (sSize, NamedPlace() ) )
+	strOpt.append("Beware the %s portal to %s!" % (sEvil, NamedPlace() ) )
+	strOpt.append("This portal leads to %s, but can only be opened by %s." %(NamedPlace(), sKeys))
+	strOpt.append("A %s Portal has opened. A %s %s %s from it! It's %s and smells of %s." %(sSize, sSD, sSO, sSE, sAdj1, sSmell ))
+	return random.choice(strOpt)
+			
+def Status17(debug=1):
+
+	sAdj = SimplePicker(shKings,3).strip()
+	sCrim = SimplePicker(shKings,6).strip()
+	sPun = SimplePicker(shKings,7).strip()
+	
+	patterns = \
+	(
+	(r'<animal>','<animal>', 	SimplePicker(shMobAtk,0).strip()),
+	(r'<class>', '<class>', 		SimplePicker(shMobAtk,3).strip()),
+	(r'<objects>','<objects>', 	Pluralizer(SimplePicker(shPlaces,4))),
+	(r'$', '$', ''),					#everything else??
+	)
+	ruleList = map(buildRule, patterns)
+	for rule in ruleList:
+		if rule(sCrim):
+			sCrimes = rule(sCrim)
+			break
+	
+	strOut = []		
+	strOut.append("In the %s nation of %s, the penalty for %s is %s." % (sAdj, NamedPlace(), sCrimes, sPun))
+	strOut.append("In the nation of %s, the penalty for %s is %s." % (NamedPlace().decode('utf-8',errors='ignore'), sCrimes, sPun))
+	strOut.append("Tread lightly in the nation of %s, for the penalty for %s is %s." % (NamedPlace(), sCrimes, sPun))
+	return random.choice(strOut)
+
+def Status18(debug=1):
+	sAdj = SimplePicker(shPlaces, 0).strip()
+	sFeature = SimplePicker(shPlaces, 8).strip()
+	strOut = []
+	strOut.append("You are staying at %s." % (TavernMaker()) )
+	strOut.append("You've decided against staying at %s." % (TavernMaker()) )
+	strOut.append("You are staying at %s, which has its own %s!" % (TavernMaker(), sFeature) )
+	strOut.append("You are staying at %s, which boasts %s %s!" % (TavernMaker(), AnAFixer(sAdj), sFeature ) )
+	return random.choice(strOut)
+
+def Status19(debug=1):
+	new_dungeon = Dungeon((14, 7), "whoCares", 20, (2, 2), (4, 4), (4, 4))
+	###Dungeon((grid_size_x, grid_size_y), name, max_num_rooms, min_room_size, max_room_size)
+	new_dungeon.generate_dungeon()
+
+	if debug == 1:
+		patterns = \
+		(
+		(r'\b0\b', '0' ,'='),		### 0 = blank space (non-useable)
+		(r'\b1\b', '1' ,'_'),		### 1 = floor tile (walkable)
+		(r'2', '2' ,'#'),			### 2 = corner tile (non-useable)
+		(r'3', '3' ,'#'),			### 3 = wall tile facing NORTH.
+		(r'4', '4' ,'#'),			### 4 = wall tile facing EAST.
+		(r'5', '5' ,'#'),			### 5 = wall tile facing SOUTH.
+		(r'6', '6' ,'#'),			### 6 = wall tile facing WEST.
+		(r'7', '7' ,'D'),			### 7 = door tile.
+		(r'8', '8' ,'^'),			### 8 = stairs leading to a higher lever in the dungeon.
+		(r'9', '9' ,'v'),  			### 9 = stairs leading to a lower level in the dungeon.
+		(r'10', '10' ,'~'),			### 10 = chest
+		(r'11', '11' ,'_'),			### 11 = path from up to down staircases (floor tile)						
+		)
 	else:
-		strUpdate = 'Error(0): Status Missing'	
+		patterns = \
+		(
+		(r'\b0\b', '0' ,u'\u2592'),		### 0 = blank space (non-useable)
+		(r'\b1\b', '1' ,u'\u2591'),		### 1 = floor tile (walkable)
+		(r'2', '2' ,u'\u2593'),			### 2 = corner tile (non-useable)
+		(r'3', '3' ,u'\u2593'),			### 3 = wall tile facing NORTH.
+		(r'4', '4' ,u'\u2593'),			### 4 = wall tile facing EAST.
+		(r'5', '5' ,u'\u2593'),			### 5 = wall tile facing SOUTH.
+		(r'6', '6' ,u'\u2593'),			### 6 = wall tile facing WEST.
+		(r'7', '7' ,'D'),				### 7 = door tile.
+		(r'8', '8' ,u'\u25B2'),			### 8 = stairs leading to a higher lever in the dungeon.
+		(r'9', '9' ,u'\u25BC'),  		### 9 = stairs leading to a lower level in the dungeon.
+		(r'10', '10' ,'~'),				### 10 = chest
+		(r'11', '11' ,u'\u2591'),		### 11 = path from up to down staircases (floor tile)						
+		)
+		
+	sStatus = ''
+	mapGen = new_dungeon.test_out(True)
+	for i in mapGen:
+		#print '\n',
+		# sStatus = ' '.join([sStatus])
+		sStatus = "\n".join([sStatus,u'\u00A0'])
+		for eachTile in i:
+			#print eachTile
+			tileList = map(buildRule, patterns)
+			for tile in tileList:
+				sOut = tile(str(eachTile))
+				if sOut: 
+					#print sOut,
+					sStatus = ''.join([sStatus,sOut])
+		# sStatus = "\n".join([sStatus])	
+	return "".join(["You are here:",sStatus])
+
+def SillyTrans(language, strIn):
+	strOut = ""
+	for word in re.findall(r"[\w']+", strIn):
+
+		word = word.encode('ascii',errors='ignore').lower()
+
+		strReady = word
+		
+		let_list = filter(None, shWORDMAKER.col_values(1,27))
+		col_list = filter(None, shWORDMAKER.col_values(0,27))
+		k = 0
+		for dip in let_list:
+			strReady = strReady.replace(dip,col_list[k])
+			k+=1
+		
+		if language == "lang_dwarven":
+			column = 2			
+		elif language == "lang_goblin":
+			column = 3
+		elif language == "lang_elfish":
+			column = 4
+		elif language == "lang_orcish":
+			column = 5
+		elif language == "lang_draconic":
+			column = 6
+		elif language == "lang_lizard":
+			column = 7
+		elif language == "lang_chth":
+			column = 8
+			
+		let_list = filter(None, shWORDMAKER.col_values(0,1))
+		col_list = filter(None, shWORDMAKER.col_values(column,1))
+
+		wordOut = ""
+		new_letter = ""
+		
+		for letter in strReady:
+			i=0
+			for org_letter in let_list:
+				if letter == org_letter:
+					try:
+						new_letter = letter.replace(org_letter,col_list[i])
+					except Exception:
+						new_letter = letter.replace(org_letter,"")
+				i += 1
+			wordOut = wordOut+new_letter
+		strOut = ' '.join([strOut,wordOut]).strip()
+		
+	return strOut
 	
+def Status20(debug=1,strIn=None):
+	lang_options = \
+		(
+		("Dwarven","lang_dwarven"),
+		("Goblin","lang_goblin"),
+		("Elven", "lang_elfish"),
+		("Orcish","lang_orcish"),
+		("Draconic","lang_draconic"),
+		("Lizardfolk","lang_lizard"),
+		("R'lyeh","lang_chth"),
+		)
+	
+	language = random.choice(lang_options)
+	language_called = language[0]
+	language_type = language[1]
+	
+	if strIn is not None:
+		#just translate the strIn
+		strOut = "Your tweet in %s: \"%s\"" % (language_called, SillyTrans(language_type, strIn) )
+	else:
+		fake_name = FlavorfulProperNoun()
+		name_out = SillyTrans(language_type, fake_name).replace(' ','-').title()
+		random_word_list = []
+		random_word_list.extend(filter(None, shPlaces.col_values(0,1)))
+		random_word_list.extend(filter(None, shPlaces.col_values(1,1)))
+		random_word_list.extend(filter(None, shPlaces.col_values(2,1)))
+		random_word_list.extend(filter(None, shPlaces.col_values(4,1)))
+		random_word_list.extend(filter(None, shPlaces.col_values(5,1)))
+		random_word_list.extend(filter(None, shPlaces.col_values(8,1)))
+		random_word = random.choice(random_word_list)
+		
+		translated_word = SillyTrans(language_type, random_word)
+		
+		strOpt = []
+		strOpt.append("The common %s name \"%s\' is usually translated as \"%s\"." % (language_called, fake_name, name_out) )
+		strOpt.append("The name %s means %s in the %s tongue." % (name_out, fake_name, language_called) )
+		strOpt.append("\"%s\" means \"%s\" in %s." % (translated_word.title(), random_word, language_called) )
+				
+		strOut = random.choice(strOpt)
+		
+	return strOut
+def StatusMaker(debug=0,force=None,strIn=None):
+
+	optID = [
+			[Status00,.095],	### Goals
+			[Status01,.085],	### Attacks
+			[Status02,.090],	###	AREA DESC LONG
+			[Status03,.022],	### AREA DESC SHORT
+			[Status04,.015],	### SHOP ADS
+			[Status05,.008],	### DOUBTFUL SHOP
+			[Status06,.070],	### drinking
+			[Status07,.025],	### YOU POTIONS
+			[Status08,.030],	### KING REPORT
+			[Status09,.068],	### YOU KING
+			[Status10,.010],	### STATUSED BY A WIZARD
+			[Status11,.003],	### Your race
+			[Status12,.060],	### Bits and Pieces
+			[Status13,.050],	### Goofy Book Review shit
+			[Status14,.035],	### GIBBERISH
+			[Status15,.063],	### LOST CIVILIZATION
+			[Status16,.100],	### PORTALS
+			[Status17,.043],	### LAWS
+			[Status18,.080],	### staying at an inn
+			[Status19,.001],	### MAP!!!
+			[Status20,.047],	### Fantasy words
+			]	
+	try:		
+		if force is not None:
+			#iChoice = force-1
+			strUpdate = optID[force][0](debug,strIn)
+		else:
+			strUpdate = pick_random(optID)(debug)
+	except Exception:
+		try:
+			strUpdate = optID[1][0](debug)
+		except Exception:
+			strUpdate = 'Error(0): Status Missing'	
+			
 	return strUpdate
 	
+for i in range(20):
+	#print i, ": ", StatusMaker(debug=1,force=15)
+	print Status15(debug=1)
+	#print FlavorfulProperNoun()
