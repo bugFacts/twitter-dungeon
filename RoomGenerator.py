@@ -1453,14 +1453,14 @@ def Status20(debug=1,strIn=None):
 def StatusMaker(debug=0,force=None,strIn=None):
 
 	optID = [
-			[Status00,.095],	### Goals
+			[Status00,.025],	### Goals
 			[Status01,.085],	### Attacks
 			[Status02,.090],	###	AREA DESC LONG
 			[Status03,.022],	### AREA DESC SHORT
 			[Status04,.015],	### SHOP ADS
 			[Status05,.008],	### DOUBTFUL SHOP
 			[Status06,.070],	### drinking
-			[Status07,.025],	### YOU POTIONS
+			[Status07,.095],	### YOU POTIONS
 			[Status08,.030],	### KING REPORT
 			[Status09,.068],	### YOU KING
 			[Status10,.010],	### STATUSED BY A WIZARD
