@@ -309,10 +309,10 @@ def ExitString():
 	strOut = ','.join([item[1] for item in sorted(exit_list)])
 	return strOut
 	
-def DoWeAddPhrase(strIn, strAdd, prob=1):
+def DoWeAddPhrase(strIn, strAdd, prob=1, max_let=140):
 	#can we add the two given strings
 	#also maybe we dont even if we can
-	if (random.random() < prob) and (len(strIn) + len(strAdd)) < 140:
+	if (random.random() < prob) and (len(strIn) + len(strAdd)) < max_let:
 		strOut = strIn + strAdd
 		return strOut
 	else:
@@ -324,10 +324,12 @@ def AnAFixer(strIn):
 	k = 1
 	while k == 1:
 		if strIn.strip() != "":
-			if strIn.lower().strip() == 'belly of the beast' or 'yggdrasil' in strIn.lower():
+			if strIn.lower().strip() == 'belly of the beast':
 				#strOut = 'The %s' % (strIn.strip())
 				strOut = ' '.join(['The', strIn.strip()])
 				k = 2
+			elif 'yggdrasil' in strIn.lower():
+				strOut = strIn.strip()
 			elif strIn[0].strip() in strVowel:
 				strOut = ' '.join(['An', strIn.strip()])
 				#strOut = 'An %s' % (strIn.strip())
@@ -1085,10 +1087,12 @@ def Status13(debug=0): #### Goofy Book Review shit
 		sPropNoun1 = RandomProperNoun()
 		
 		optStr = []
-		optStr.append("The %s %s %s the %s %s." % (sNoun1,sMody1,sVerb,sNoun2,sMody2))
+		#optStr.append("The %s %s %s the %s %s." % (sNoun1,sMody1,sVerb,sNoun2,sMody2))
+		optStr.append("Your %s %s %s the %s %s." % (sNoun1,sMody1,sVerb,sNoun2,sMody2))
+		optStr.append("Your %s the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
 		optStr.append("Your %s the interplay between the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
 		optStr.append("%s\'s %s the %s %s and the %s %s %s." % (sPropNoun1,sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
-		optStr.append("Your %s the %s %s and the %s %s %s." % (sBook,sNoun1,sMody1, sNoun2,sMody2, sRevw))
+		
 		
 		strOut = optStr[pick_random([ [0, .20],
 									[1,.10],
@@ -1475,10 +1479,13 @@ def StatusMaker(debug=0,force=None,strIn=None):
 			[Status19,.001],	### MAP!!!
 			[Status20,.047],	### Fantasy words
 			]	
+
 	try:		
 		if force is not None:
-			#iChoice = force-1
-			strUpdate = optID[force][0](debug,strIn)
+			if strIn is not None:
+				strUpdate = optID[force][0](debug,strIn)
+			else:
+				strUpdate = optID[force][0](debug)
 		else:
 			strUpdate = pick_random(optID)(debug)
 	except Exception:
@@ -1488,8 +1495,3 @@ def StatusMaker(debug=0,force=None,strIn=None):
 			strUpdate = 'Error(0): Status Missing'	
 			
 	return strUpdate
-	
-for i in range(20):
-	#print i, ": ", StatusMaker(debug=1,force=15)
-	print Status15(debug=1)
-	#print FlavorfulProperNoun()
