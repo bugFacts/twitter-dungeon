@@ -16,10 +16,18 @@ TWEETSRESPONDEDTO = 'P:\python_twitter\scrips\yourdmLogs\AlreadyReplied.txt'
 BANLIST = 'P:\python_twitter\scrips\yourdmLogs\ANeverTalkTo.txt'
 BADWORDS = r'P:\python_twitter\scrips\yourdmLogs\badwords.txt'
 
-api=twitter.Api(consumer_key='',
-				consumer_secret='',
-				access_token_key='',
-				access_token_secret='') 
+TOKEN = r'P:\python_twitter\scrips\tokens\dmcodes.txt'
+tokens= []
+with open(TOKEN, 'r') as fp:
+	ftokens = fp.readlines()
+	
+for i in ftokens:
+	tokens.append(i.strip())
+
+api=twitter.Api(consumer_key = tokens[0],
+				consumer_secret = tokens[1],
+				access_token_key= tokens[2],
+				access_token_secret= tokens[3]) 
 
 ######## READ FORMER RESPODERS INTO DICTIONARY ####
 def DictUserRelat():
@@ -272,17 +280,26 @@ def KillRelation(user):
 	
 
 def PostUpdateToTwitter(numOfTimes,sleepMin=0,sleepMax=10,debug=0):
+	print "PostUpdateToTwitter method beginning"
+	
 	for count in range(numOfTimes):
+		print "PostUpdateToTwitter loop beginning"
 		strStatus = RoomGenerator.StatusMaker(debug=debug)
+		print "test: ", strStatus
 		
 		if debug == 1:
+			sleepMin = 0
+			sleepMax = 0
 			print count, ": ", strStatus
 			
 		else:
+			print "posting: ", strStatus
 			api.PostUpdate(strStatus)
+			
 			time.sleep(60*random.randint(sleepMin,sleepMax))
 		
 def PesterPost(numOfTimes,results=None,sleepMin=0,sleepMax=10,debug=0):
+	print "PesterPost method beginning"
 	k = 1												#counter - keep less than numOfTimes
 	
 	if len(results) == 0:
@@ -353,7 +370,7 @@ def PesterPost(numOfTimes,results=None,sleepMin=0,sleepMax=10,debug=0):
 							lenCheck = 2
 							
 						api.PostUpdate('@%s %s' % (usrName, strStatus), in_reply_to_status_id=statusObj.id)
-				
+						print "PesterPost", strStatus
 				k += 1
 			except Exception:
 				print "Unexpected error in PesterPost:", sys.exc_info()[0:2]
@@ -379,34 +396,44 @@ def PesterPost(numOfTimes,results=None,sleepMin=0,sleepMax=10,debug=0):
 #and text file updates
 debug = 0
 
-TweetAtFriendMinWait = 10
-TweetAtFriendMaxWait = 20
+TweetAtFriendMinWait = 5
+TweetAtFriendMaxWait = 12
 
 TweetAtMentionMinWait = 2
 TweetAtMentionMaxWait = 10
 
-TweetPlainMinWait = 10
-TweetPlainMaxWait = 20
+TweetPlainMinWait = 5
+TweetPlainMaxWait = 8
 
+# PostUpdateToTwitter(15,sleepMin=.1,sleepMax=.2,debug = debug)
+
+
+
+
+try:
+	PostUpdateToTwitter(2,sleepMin=TweetPlainMinWait,sleepMax=TweetPlainMaxWait,debug = debug)
+except Exception:
+	print ("STATEMENT ERROR")
+	pass
+	
 try:	
 	RepliesToMe = api.GetMentions()
-	PesterPost(3,results=RepliesToMe,sleepMin=TweetAtMentionMinWait,sleepMax=TweetAtMentionMaxWait,debug = debug)
+	PesterPost(2,results=RepliesToMe,sleepMin=TweetAtMentionMinWait,sleepMax=TweetAtMentionMaxWait,debug = debug)
 except Exception:
+	print ("REPLIES ERROR")
 	pass
 	
 try:	
 	MyTimeline = api.GetHomeTimeline(count=90)
 	PesterPost(1,results=MyTimeline,sleepMin=TweetAtFriendMinWait,sleepMax=TweetAtFriendMaxWait,debug = debug)
 except Exception:
+	print ("MENTION ERROR")
 	pass
 	
-try:
-	PostUpdateToTwitter(1,sleepMin=TweetPlainMinWait,sleepMax=TweetPlainMaxWait,debug = debug)
-except Exception:
-	pass
 
-try:
-	PostUpdateToTwitter(1,sleepMin=TweetPlainMinWait,sleepMax=TweetPlainMaxWait,debug = debug)
-except Exception:
-	pass
+
+
+	
+
+
 
