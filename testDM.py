@@ -23,7 +23,8 @@ class Player:
 				char_name=None, char_class=None, char_race=None, 
 				char_Helm=None, char_Chest=None, char_Hand=None,
 				char_Ring=None,
-				char_inv1=None, char_inv2=None, char_inv3=None ):
+				char_inv1=None, char_inv2=None, char_inv3=None, 
+				enemy=None):
 		
 		self.userID = userID
 		self.userName = userName
@@ -47,6 +48,7 @@ class Player:
 		self.char_inv2 = char_inv2
 		self.char_inv3 = char_inv3
 		
+		self.enemy = enemy
 	# def __getitem__(self, key): return self.data[key]
 	
 	# def __setitem__(self, key, item): self.data[key] = item
@@ -74,6 +76,8 @@ class Player:
 		print "Inventory Slot 1: ", self.char_inv1
 		print "Inventory Slot 2: ", self.char_inv2
 		print "Inventory Slot 3: ", self.char_inv3
+		
+		print "Current enemy: ", self.enemy
 														
 	def prompt_missing(self):
 		if (
@@ -87,27 +91,42 @@ class Player:
 			self.prompt_name()
 		if not self.char_class or self.char_class==None or self.char_class=="None":
 			self.prompt_class()
-			
-	def begin_dungeon(self):
-
-		print 'enter dungeon?'
-	def prompt_name(self):
-
-		print 'you need a name!'
-	def prompt_class(self):
-		
-		print 'you need a class!'
-		
+					
 	def get_level(self):
-
 		if not self.xp or self.xp==0 or self.xp=="None":
 			level = 0
 			x = 0
 		else:
 			x = int(self.xp)
 			level = 10 % (x + 1)
-		return level
+		self.level = level
+		self.xp = x
+
 	
+	# def set_name(self,name):
+		# self.char_name = name
+		
+	# def set_helm(self,helm_name):
+		# self.char_Helm = helm_name
+		
+	# def set_chest(self,char_Chest):
+		# self.char_Chest = char_Chest
+	
+	# def set_hand(self,char_Hand):
+		# self.char_Hand = char_Hand
+		
+	# def set_ring(self,char_Ring):
+		# self.char_Ring = char_Ring
+		
+	# def set_inv1(self,char_inv1):
+		# self.char_inv1 = char_inv1
+		
+	# def set_inv2(self,char_inv2):
+		# self.char_inv2 = char_inv2
+		
+	# def set_inv3(self,char_inv3):
+		# self.char_inv3 = char_inv3
+		
 class Player_Dict:
 	def __init__(self):
 		self.members = []
@@ -150,6 +169,8 @@ class Player_Dict:
 			char_inv3 = i.split('|')[16].rstrip()
 			
 			char_inv = (char_inv1, char_inv2, char_inv3)
+			
+			enemy = i.split('|')[17].rstrip()
 
 			self.PlayerDict[userName] = Player(userID=userID, 
 												userName=userName,
@@ -167,7 +188,8 @@ class Player_Dict:
 												char_Ring=char_Ring,
 												char_inv1=char_inv1,
 												char_inv2=char_inv2,
-												char_inv3=char_inv3
+												char_inv3=char_inv3,
+												enemy=enemy
 												)
 		
 		return self.PlayerDict
@@ -205,7 +227,8 @@ class Player_Dict:
 					value.char_Ring,
 					value.char_inv1,
 					value.char_inv2,
-					value.char_inv3
+					value.char_inv3,
+					value.enemy
 					)
 
 			a = ''
