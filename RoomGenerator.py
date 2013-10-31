@@ -11,23 +11,23 @@ from map_generator import *
 
 import unicodedata
 #loadup dictionary 
-wb = xlrd.open_workbook('mob2.xls')
+#wb = xlrd.open_workbook('mob2.xls')
 wb2 = xlrd.open_workbook(u'words.xls')
 wb3 = xlrd.open_workbook(u'word_maker.xls')
 
-shMobs = wb.sheet_by_name(u'mob list')
-shAdjs = wb.sheet_by_name(u'adjective')
-shAtak = wb.sheet_by_name(u'attacks')
-shOoze = wb.sheet_by_name(u'OozeColors')
-shDung = wb.sheet_by_name(u'dungeons')
-shShop = wb.sheet_by_name(u'shops')
-shKing = wb.sheet_by_name(u'kings')
-shFREQ = wb.sheet_by_name(u'letFreq')
-shCOMP = wb.sheet_by_name(u'testComp')
-shBITS = wb.sheet_by_name(u'bits')
-shBOOK = wb.sheet_by_name(u'booky')
-shLOST = wb.sheet_by_name(u'lostEmpire')
-shDrink = wb.sheet_by_name(u'drink')
+#shMobs = wb.sheet_by_name(u'mob list')
+#shAdjs = wb.sheet_by_name(u'adjective')
+#shAtak = wb.sheet_by_name(u'attacks')
+#shOoze = wb.sheet_by_name(u'OozeColors')
+#shDung = wb.sheet_by_name(u'dungeons')
+#shShop = wb.sheet_by_name(u'shops')
+#shKing = wb.sheet_by_name(u'kings')
+#shFREQ = wb.sheet_by_name(u'letFreq')
+#shCOMP = wb.sheet_by_name(u'testComp')
+#shBITS = wb.sheet_by_name(u'bits')
+#shBOOK = wb.sheet_by_name(u'booky')
+#shLOST = wb.sheet_by_name(u'lostEmpire')
+#shDrink = wb.sheet_by_name(u'drink')
 
 shPlaces = wb2.sheet_by_name(u'NamedPlace')
 shLOSTEMP = wb2.sheet_by_name(u'lostEmpire')
@@ -36,6 +36,11 @@ shMobAtk = wb2.sheet_by_name(u'MobsVerbs')
 shKings = wb2.sheet_by_name(u'kings')
 shAdvice = wb2.sheet_by_name(u'Advice')
 shAdjecs = wb2.sheet_by_name(u'adjective')
+shDrinks = wb2.sheet_by_name(u'drink')
+shFREQ = wb2.sheet_by_name(u'letFreq')
+shCOMP = wb2.sheet_by_name(u'testComp')
+shBOOK = wb2.sheet_by_name(u'booky')
+shBITS = wb2.sheet_by_name(u'bits')
 
 shWORDMAKER = wb3.sheet_by_name(u'langCaesar')
 
@@ -55,11 +60,11 @@ def PickAdjPhrase(numCol):
 		#print "woah 0"
 		pass
 	else:			#pick columns randomly!#
-		listColn = range(1, shAdjs.ncols+1)
+		listColn = range(1, 3)
 		listAdjCol = random.sample(listColn,numCol)#dont pick same column twice
 		#pick one adj from each selected column
 		for k in sorted(listAdjCol):
-			adj_list = filter(None, shAdjs.col_values(k-1,1))
+			adj_list = filter(None, shAdjecs.col_values(k-1,1))
 			iAdj = random.randint(0,len(adj_list)-1)
 			strAdj = adj_list[iAdj]
 	#slam them into one adjective string
@@ -75,23 +80,23 @@ def SimplePicker(sheet, column):
 def PickRandomMob():
 	### MONSTER PICKER ###
 	#pick monster category#
-	iMobType = random.randint(0,shMobs.ncols-1)
+	iMobType = random.randint(0,2)
 	#pick monster#
-	mob_list = filter(None, shMobs.col_values(iMobType,1))
+	mob_list = filter(None, shMobAtk.col_values(iMobType,1))
 	iMob = random.randint(0,len(mob_list)-1)
 	strOut = mob_list[iMob]
 	return strOut
 
 def PickAnimalMob():
-	strOut = SimplePicker(shMobs,0)
+	strOut = SimplePicker(shMobAtk,0)
 	return strOut
 	
 def PickSuperMob():
-	strOut = SimplePicker(shMobs,1)
+	strOut = SimplePicker(shMobAtk,1)
 	return strOut
 	
 def PickHumanoidMob():
-	strOut = SimplePicker(shMobs,2)
+	strOut = SimplePicker(shMobAtk,2)
 	return strOut
 	
 def VowConMatch(letterList,matchstr):
@@ -173,6 +178,32 @@ def Verber(strIn):
 		strOut = rule(strIn)
 		if strOut: return strOut# + strTail
 		
+def Verbed(strIn):
+	#turns a verb into a verber
+	#for use in flavor names
+	#like walrusstabber or orclicker
+	
+	strTail = ''.join([x for x in re.split(r'( +)',strIn)[1:]])	#cut off tail of strings when they are like <verb> at
+	strIn = re.split(r'( +)',strIn)[0][:-1]						#the first word <verb> at strings
+	
+	patterns = \
+	(
+	(r'ea[t]$|ou[t]$','$','ed'),
+	(r'[aeiou]t$','$','ted'),
+	(r'[aeiou]p$','$','ped'),
+	(r'[aeiou]b$','$','bed'),
+	(r'bber$|tter$','$','ed'),
+	(r'[s|p]t$|[p|s]p$', '$','ed'),	
+	(r't$|p$|b$', '$', 'ed'),
+	(r'e$', '$', 'd'),
+	(r'h$','$','ed'),
+	('$', '$', 'ed'),					#everything else??
+	)
+	ruleList = map(buildRule, patterns)
+	for rule in ruleList:
+		strOut = rule(strIn)
+		if strOut: return strOut# + strTail
+		
 def Verbing(strIn):
 	#turns a verb into a verbing
 	
@@ -226,8 +257,8 @@ def FlavorLetter(oNam, prob=0.1):
 		
 def RandomProperNoun():
 	#Creates a random name
-	shFREQ = wb.sheet_by_name(u'letFreq')
-	shCOMP = wb.sheet_by_name(u'testComp')
+	# shFREQ = wb2.sheet_by_name(u'letFreq')
+	# shCOMP = wb2.sheet_by_name(u'testComp')
 
 	list1 = []
 	alfa = filter(None, shFREQ.col_values(0,1))
@@ -274,17 +305,17 @@ def RandomProperNoun():
 	return strOut.title()
 	
 def FlavorfulProperNoun():
-	strVerb = SimplePicker(shAtak,0).strip().lower()
+	strVerb = SimplePicker(shMobAtk,4).strip().lower()
 	
 	strVerber = Verber(strVerb)
 	
 	iMobType = random.randint(0,1)
-	strRanMob = SimplePicker(shMobs, iMobType)
+	strRanMob = SimplePicker(shMobAtk, iMobType)
 	
 	object_list = []
-	object_list.extend(filter(None, shMobAtk.col_values(0,1)))
-	object_list.extend(filter(None, shMobAtk.col_values(1,1)))
-	object_list.extend(filter(None, shMobAtk.col_values(2,1)))
+	#object_list.extend(filter(None, shMobAtk.col_values(0,1)))
+	#object_list.extend(filter(None, shMobAtk.col_values(1,1)))
+	#object_list.extend(filter(None, shMobAtk.col_values(2,1)))
 	object_list.extend(filter(None, shPlaces.col_values(4,1)))
 	object_list.extend(filter(None, shPlaces.col_values(5,1)))
 	
@@ -461,48 +492,48 @@ def TavernMaker():
 ##														  ##
 ############################################################
 ############################################################	
-sRanMob = PickRandomMob()
-sAniMob = PickAnimalMob()
-sSupMob = PickSuperMob()
-sHumMob = PickHumanoidMob()
+# sRanMob = PickRandomMob()
+# sAniMob = PickAnimalMob()
+# sSupMob = PickSuperMob()
+# sHumMob = PickHumanoidMob()
 	
-sAttacks = SimplePicker(shAtak,0).strip()
-sStatus = SimplePicker(shAtak,1).strip()
-sClass = SimplePicker(shAtak,2).strip()
-sBodyPt = SimplePicker(shAtak,3).strip()
-sDefeat = SimplePicker(shAtak,4).strip()
-sDefeating = SimplePicker(shAtak,5).strip()
-sDefeated = SimplePicker(shAtak,6).strip()
-sAbilty = SimplePicker(shAtak,7).strip()
+# sAttacks = SimplePicker(shAtak,0).strip()
+# sStatus = SimplePicker(shAtak,1).strip()
+# sClass = SimplePicker(shAtak,2).strip()
+# sBodyPt = SimplePicker(shAtak,3).strip()
+# sDefeat = SimplePicker(shAtak,4).strip()
+# sDefeating = SimplePicker(shAtak,5).strip()
+# sDefeated = SimplePicker(shAtak,6).strip()
+# sAbilty = SimplePicker(shAtak,7).strip()
 	
-sUArriveAt = SimplePicker(shDung,0).strip()
-sDungeon = SimplePicker(shDung,1).strip()
-sItIs = SimplePicker(shDung,2).strip()
-sHeroItem = SimplePicker(shDung,3).strip()
-sItArrivesAt = SimplePicker(shDung,4).strip()
-sItAppears = SimplePicker(shDung,5).strip()
+# sUArriveAt = SimplePicker(shDung,0).strip()
+# sDungeon = SimplePicker(shDung,1).strip()
+# sItIs = SimplePicker(shDung,2).strip()
+# sHeroItem = SimplePicker(shDung,3).strip()
+# sItArrivesAt = SimplePicker(shDung,4).strip()
+# sItAppears = SimplePicker(shDung,5).strip()
 	
-sMaterial = SimplePicker(shShop,0).strip()
-sShopItem = SimplePicker(shShop,1).strip()
-sColors = SimplePicker(shShop,2).strip()
-sEffect = SimplePicker(shShop,3).strip()
-sDoubts = SimplePicker(shShop,4).strip()
+# sMaterial = SimplePicker(shShop,0).strip()
+# sShopItem = SimplePicker(shShop,1).strip()
+# sColors = SimplePicker(shShop,2).strip()
+# sEffect = SimplePicker(shShop,3).strip()
+# sDoubts = SimplePicker(shShop,4).strip()
 	
-sTitle = SimplePicker(shKing,0)
-#gender tuple stuffs
-sKingDoes = SimplePicker(shKing,2)
-sHumDesc1 = SimplePicker(shKing,3)
-sHumDesc2 = SimplePicker(shKing,3)
-sHumDesc3 = SimplePicker(shKing,3)
+# sTitle = SimplePicker(shKing,0)
+# gender tuple stuffs
+# sKingDoes = SimplePicker(shKing,2)
+# sHumDesc1 = SimplePicker(shKing,3)
+# sHumDesc2 = SimplePicker(shKing,3)
+# sHumDesc3 = SimplePicker(shKing,3)
 	
-sPropNoun1 = RandomProperNoun()
-sPropNoun2 = RandomProperNoun()
-sPropNoun3 = RandomProperNoun()
+# sPropNoun1 = RandomProperNoun()
+# sPropNoun2 = RandomProperNoun()
+# sPropNoun3 = RandomProperNoun()
 	
-sFlavNoun = FlavorfulProperNoun()
+# sFlavNoun = FlavorfulProperNoun()
 	
-arrNumOfAdjProb = [[0,.8],[1,.12],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
-sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
+# arrNumOfAdjProb = [[0,.8],[1,.12],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
+# sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
 	
 
 
@@ -515,21 +546,21 @@ def Status01(debug=0):	### Attacks
 	#{4} [nothing]
 	sRanMob = PickRandomMob()
 	
-	sAttacks = SimplePicker(shAtak,0).strip()
-	sStatus = SimplePicker(shAtak,1).strip()
-	sClass = SimplePicker(shAtak,2).strip()
-	sBodyPt = SimplePicker(shAtak,3).strip()
-	sDefeat = SimplePicker(shAtak,4).strip()
-	sDefeating = SimplePicker(shAtak,5).strip()
-	sDefeated = SimplePicker(shAtak,6).strip()
-	sAbilty = SimplePicker(shAtak,7).strip()
+	sAttacks = SimplePicker(shMobAtk,4).strip()
+	sStatus = SimplePicker(shMobAtk,5).strip()
+	sClass = SimplePicker(shMobAtk,3).strip()
+	sBodyPt = SimplePicker(shMobAtk,6).strip()
+	sDefeat = SimplePicker(shMobAtk,7).strip()
+	sDefeating = Verbing(SimplePicker(shMobAtk,7).strip())
+	sDefeated = Verbed(SimplePicker(shMobAtk,7).strip())
+	sAbilty = SimplePicker(shMobAtk,8).strip()
 	
-	sUArriveAt = SimplePicker(shDung,0).strip()
-	sDungeon = SimplePicker(shDung,1).strip()
-	sItIs = SimplePicker(shDung,2).strip()
-	sHeroItem = SimplePicker(shDung,3).strip()
-	sItArrivesAt = SimplePicker(shDung,4).strip()
-	sItAppears = SimplePicker(shDung,5).strip()
+	sUArriveAt = SimplePicker(shPlaces,7).strip()
+	sDungeon = SimplePicker(shPlaces,1).strip()
+	sItIs = SimplePicker(shPlaces,10).strip()
+	sHeroItem = SimplePicker(shAdjecs,5).strip()
+	sItArrivesAt = SimplePicker(shMobAtk,9).strip()
+	sItAppears = SimplePicker(shMobAtk,10).strip()
 	
 	arrNumOfAdjProb = [[0,.12],[1,.8],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
 	sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
@@ -570,12 +601,12 @@ def Status02(debug=0):	#### AREA DESC LONG
 	sSupMob = PickSuperMob().strip()
 	sHumMob = PickHumanoidMob().strip()
 	
-	sUArriveAt = SimplePicker(shDung,0).strip()
-	sDungeon = SimplePicker(shDung,1).strip()
-	sItIs = SimplePicker(shDung,2).strip()
-	sHeroItem = SimplePicker(shDung,3).strip()
-	sItArrivesAt = SimplePicker(shDung,4).strip()
-	sItAppears = SimplePicker(shDung,5).strip()
+	sUArriveAt = SimplePicker(shPlaces,7).strip()
+	sDungeon = SimplePicker(shPlaces,1).strip()
+	sItIs = SimplePicker(shPlaces,10).strip()
+	sHeroItem = SimplePicker(shAdjecs,5).strip()
+	sItArrivesAt = SimplePicker(shMobAtk,9).strip()
+	sItAppears = SimplePicker(shMobAtk,10).strip()
 	
 	sExits = ExitString()
 	
@@ -612,19 +643,23 @@ def Status02(debug=0):	#### AREA DESC LONG
 	return strOut
 	
 def Status03(debug=0):	#AREA DESC SHORT
-	sUArriveAt = SimplePicker(shDung,0).strip()
-	sDungeon = SimplePicker(shDung,1).strip()
-	sItIs = SimplePicker(shDung,2).strip()
-	sHeroItem = SimplePicker(shDung,3).strip()
-	sShopItem = SimplePicker(shShop,1).strip()
+
+	sShopItem = SimplePicker(shAdjecs,3).strip()
+	
+	sUArriveAt = SimplePicker(shPlaces,7).strip()
+	sDungeon = SimplePicker(shPlaces,1).strip()
+	sItIs = SimplePicker(shPlaces,10).strip()
+	sHeroItem = SimplePicker(shAdjecs,5).strip()
+
+	
 	
 	sRanMob = PickRandomMob()
 	
-	sThereAR = SimplePicker(shDung,6).strip()
+	sThereAR = SimplePicker(shPlaces,5).strip()
 	
 	k = random.randint(0,3)
 	if k <= 2:
-		sThereIS = SimplePicker(shDung,7).strip()
+		sThereIS = SimplePicker(shPlaces,4).strip()
 	else:
 		sThereIS = AnAFixer(sRanMob)
 	
@@ -698,9 +733,9 @@ def Status04(debug=0):	### SHOP ADS
 		#{3}[material]
 		#[item]s for [# 1-5000] gold pieces!.
 		
-	sMaterial = SimplePicker(shShop,0).strip()#
-	sShopItem = SimplePicker(shShop,1).strip()#
-	sColors = SimplePicker(shShop,2).strip()#
+	sMaterial = SimplePicker(shAdjecs,16).strip()
+	sShopItem = SimplePicker(shAdjecs,3).strip()
+	sColors = SimplePicker(shAdjecs,8).strip()
 	
 	
 	arrNumOfAdjProb = [[0,.12],[1,.8],[2,.08]]#decide on number of adjectives 1 most common, 0 , 2 , 3
@@ -742,19 +777,20 @@ def Status05(debug=0): ### DOUBTFUL SHOP
 		#{3}[material]
 		#[item]s for [# 1-5000] gold pieces!.
 		
-	sMaterial = SimplePicker(shShop,0).encode('utf8',errors='replace').strip()
-	sShopItem = SimplePicker(shShop,1).encode('utf8',errors='replace').strip()
-	sColors = SimplePicker(shShop,2).encode('utf8',errors='replace').strip()
-	sEffect = SimplePicker(shShop,3).encode('utf8',errors='replace').strip()
-	sDoubts = SimplePicker(shShop,4).encode('utf8',errors='ignore').strip()
-	sButs = SimplePicker(shShop,5).encode('utf8',errors='replace').strip()
+	sMaterial = SimplePicker(shAdjecs,16).strip().strip()
+	sShopItem = SimplePicker(shAdjecs,3).strip()
+	sColors = SimplePicker(shAdjecs,8).strip()
 	
-	sHumDesc1 = SimplePicker(shKing,3)
+	sEffect = SimplePicker(shDrinks,3).strip()
+	sDoubts = SimplePicker(shDrinks,4).strip()
+	sButs = SimplePicker(shDrinks,5).strip()
+	
+	sHumDesc1 = SimplePicker(shKings,3)
 	
 	m = 1
 	while m == 1:
 		if 'water' in sDoubts or 'risly' in sDoubts:
-			sDoubts = SimplePicker(shShop,4).encode('utf8',errors='ignore').strip()
+			sDoubts = SimplePicker(shDrinks,4).strip().strip()
 		elif 'are' in sDoubts:
 			sDoubts = sDoubts.replace('are','is')
 		elif "don't" in sDoubts:
@@ -772,7 +808,7 @@ def Status05(debug=0): ### DOUBTFUL SHOP
 	sMobAdj = PickAdjPhrase(pick_random(arrNumOfAdjProb))
 	#pick monster#
 	iMobType = random.randint(0,1)
-	mob_list = filter(None, shMobs.col_values(iMobType,1))
+	mob_list = filter(None, shMobAtk.col_values(iMobType,1))
 	allit_list = []
 	
 	for i in mob_list:
@@ -805,7 +841,7 @@ def Status05(debug=0): ### DOUBTFUL SHOP
 	
 def Status06(debug=0): ### drinking
 	
-	col_list = filter(None, shMobs.col_values(2,1))
+	col_list = filter(None, shMobAtk.col_values(2,1))
 	col_list.append('DM')
 	col_list.append('player to your right')
 	col_list.append('player to your left')
@@ -819,9 +855,9 @@ def Status06(debug=0): ### drinking
 	if sHumoid[:4] != 'Any ' and sHumoid[:4] != 'Some':
 		sHumoid = ' '.join([random.choice(['The','Any']),sHumoid])
 	
-	sClause = SimplePicker(shDrink,0).encode('utf8',errors='replace').strip()
-	sEvent = SimplePicker(shDrink,1).encode('utf8',errors='replace').strip()
-	sRule = SimplePicker(shDrink,2).encode('utf8',errors='replace').strip()
+	sClause = SimplePicker(shDrinks,0).encode('utf8',errors='replace').strip()
+	sEvent = SimplePicker(shDrinks,1).encode('utf8',errors='replace').strip()
+	sRule = SimplePicker(shDrinks,2).encode('utf8',errors='replace').strip()
 	
 	strOpt = []
 	strOpt.append('%s %s %s, %s!' % (sClause, sHumoid, sEvent, sRule))
@@ -832,64 +868,64 @@ def Status06(debug=0): ### drinking
 	
 def Status07(debug=0):### YOU POTIONS
 	
-	sAdj1 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
-	sAdj2 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+	sAdj1 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
+	sAdj2 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 	if sAdj2 == sAdj1:
-		sAdj2 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+		sAdj2 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 	else:
 		k = 2
 			
-	sAdj3 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+	sAdj3 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 	k = 1
 	while k == 1:
 		if sAdj3 == sAdj1 or sAdj3 == sAdj2:
-			sAdj3 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+			sAdj3 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 		else:
 			k = 2
 			
-	sAdj4 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+	sAdj4 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 	k = 1
 	while k == 1:
 		if sAdj4 == sAdj1 or sAdj4 == sAdj2 or sAdj4 == sAdj3:
-			sAdj4 = random.choice([SimplePicker(shShop,2).strip(),SimplePicker(shShop,8).strip()])
+			sAdj4 = random.choice([SimplePicker(shAdjecs,8).strip(),SimplePicker(shAdjecs,11).strip()])
 		else:
 			k = 2
 			
-	sLiquid1 = SimplePicker(shShop,9).strip()
-	sLiquid2 = SimplePicker(shShop,9).strip()
+	sLiquid1 = SimplePicker(shAdjecs,9).strip()
+	sLiquid2 = SimplePicker(shAdjecs,9).strip()
 	
-	sTaste1 = SimplePicker(shShop,10).strip()
-	sTaste2 = SimplePicker(shShop,10).strip()
+	sTaste1 = SimplePicker(shAdjecs,10).strip()
+	sTaste2 = SimplePicker(shAdjecs,10).strip()
 	k = 1
 	while k == 1:
 		if sTaste2 == sTaste1:
-			sTaste2 = SimplePicker(shShop,8).strip()
+			sTaste2 = SimplePicker(shAdjecs,11).strip()
 		else:
 			k = 2
-	sTaste3 = SimplePicker(shShop,10).strip()
+	sTaste3 = SimplePicker(shAdjecs,10).strip()
 	k = 1
 	while k == 1:
 		if sTaste3 == sTaste1 or sTaste3 == sTaste2:
-			sTaste3 = SimplePicker(shShop,8).strip()
+			sTaste3 = SimplePicker(shAdjecs,11).strip()
 		else:
 			k = 2
-	sTaste4 = SimplePicker(shShop,10).strip()
+	sTaste4 = SimplePicker(shAdjecs,10).strip()
 	k = 1
 	while k == 1:
 		if sTaste4 == sTaste1 or sTaste4 == sTaste2 or sTaste4 == sTaste3:
-			sTaste4 = SimplePicker(shShop,8).strip()
+			sTaste4 = SimplePicker(shAdjecs,11).strip()
 		else:
 			k = 2
 		
-	sPie = SimplePicker(shShop,11).strip()
+	sPie = SimplePicker(shAdjecs,14).strip()
 	
-	sColors = SimplePicker(shShop,2).strip()
+	sColors = SimplePicker(shAdjecs,8).strip()
 	
-	sEffect1 = SimplePicker(shShop,3).strip()
-	sEffect2 = SimplePicker(shShop,3).strip()
-	sDoubts = SimplePicker(shShop,4).encode('utf8',errors='replace')
+	sEffect1 = SimplePicker(shDrinks,3).strip()
+	sEffect2 = SimplePicker(shDrinks,3).strip()
+	sDoubts = SimplePicker(shDrinks,4).encode('utf8',errors='replace')
 
-	sButs = SimplePicker(shShop,5).strip().encode('utf8',errors='replace')
+	sButs = SimplePicker(shDrinks,5).strip().encode('utf8',errors='replace')
 	
 	#####################################################
 	sAdjOpt = [	sAdj1,
@@ -933,16 +969,16 @@ def Status07(debug=0):### YOU POTIONS
 def Status08(debug=0): ##### KING REPORT
 		#6 
 	#[hero name], the [adj][title] of [place name] has [king_action]
-	sDefeated = SimplePicker(shAtak,6).strip()
+	sDefeated = Verbed(SimplePicker(shMobAtk,7).strip())
 	
 	sRanMob = PickRandomMob()
 	
-	sTitle = SimplePicker(shKing,0)
+	sTitle = SimplePicker(shKings,0)
 	#gender tuple stuffs
-	sKingDoes = SimplePicker(shKing,2)
-	sHumDesc1 = SimplePicker(shKing,3)
-	sHumDesc2 = SimplePicker(shKing,3)
-	sHumDesc3 = SimplePicker(shKing,3)
+	sKingDoes = SimplePicker(shKings,2)
+	sHumDesc1 = SimplePicker(shKings,3)
+	sHumDesc2 = SimplePicker(shKings,3)
+	sHumDesc3 = SimplePicker(shKings,3)
 	
 	sPropNoun1 = RandomProperNoun()
 	sPropNoun2 = RandomProperNoun()
@@ -968,14 +1004,14 @@ def Status08(debug=0): ##### KING REPORT
 def Status09(debug=0):##### YOU KING
 			#6 
 	#[hero name], the [adj][title] of [place name] has [king_action]
-	sTitle = SimplePicker(shKing,0)
+	sTitle = SimplePicker(shKings,0)
 	#gender tuple stuffs
-	sKingDoes = SimplePicker(shKing,2)
-	sHumDesc1 = SimplePicker(shKing,3)
-	sHumDesc2 = SimplePicker(shKing,3)
-	sHumDesc3 = SimplePicker(shKing,3)
+	sKingDoes = SimplePicker(shKings,2)
+	sHumDesc1 = SimplePicker(shKings,3)
+	sHumDesc2 = SimplePicker(shKings,3)
+	sHumDesc3 = SimplePicker(shKings,3)
 	
-	sRelation = SimplePicker(shKing,4)
+	sRelation = SimplePicker(shKings,4)
 		
 	sPropNoun1 = RandomProperNoun()
 	sPropNoun2 = RandomProperNoun()
@@ -993,11 +1029,11 @@ def Status09(debug=0):##### YOU KING
 
 	strFullName = sPropNoun1.title() + ' ' + sFlavNoun.title()
 	
-	sHeroItem = SimplePicker(shDung,3).strip()
+	sHeroItem = SimplePicker(shAdjecs,5).strip()
 	
-	sDefeater = Verber(SimplePicker(shAtak,4).strip())
+	sDefeater = Verber(SimplePicker(shMobAtk,7).strip())
 	
-	sDungeon = SimplePicker(shDung,1).strip()
+	sDungeon = SimplePicker(shPlaces,1).strip()
 		
 	optStr = []
 	
@@ -1018,11 +1054,11 @@ def Status10(debug=0): ##### STATUSED BY A WIZARD
 	sPropNoun1 = RandomProperNoun()
 	sHumMob = PickHumanoidMob()
 	
-	sStatus = SimplePicker(shAtak,1).strip()
-	sClass = SimplePicker(shAtak,2).strip()
-	sBodyPt = SimplePicker(shAtak,3).strip()
+	sStatus = SimplePicker(shMobAtk,5).strip()
+	sClass = SimplePicker(shMobAtk,3).strip()
+	sBodyPt = SimplePicker(shMobAtk,6).strip()
 	
-	sColors = SimplePicker(shShop,2).strip()
+	sColors = SimplePicker(shAdjecs,8).strip()
 
 	if random.randint(0,1) == 1:
 		strLfOrRt = 'right'
@@ -1048,12 +1084,12 @@ def Status10(debug=0): ##### STATUSED BY A WIZARD
 
 def Status11(debug=0): ##### Your race
 
-	sAttacks = SimplePicker(shAtak,0).strip()
+	sAttacks = SimplePicker(shMobAtk,4).strip()
 	
 	k = 0
 	while k == 0:
 		if ' at' in sAttacks:
-			sAttacks = SimplePicker(shAtak,0).strip()
+			sAttacks = SimplePicker(shMobAtk,4).strip()
 		else:
 			k = 1
 			
